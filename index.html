@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebGIS Kota Semarang</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css" />
+  <style>
+    html, body {height:100%;margin:0;font-family:Arial,sans-serif;display:flex;flex-direction:column;}
+    header{background:#317c7d;color:#000;padding:10px 20px;text-align:center;}
+    main{flex:1;display:flex;justify-content:center;align-items:center;}
+    #map{width:80%;height:80%;box-shadow:0 0 10px rgba(0,0,0,0.3);border-radius:10px;}
+    .nav-links{margin-top:8px;}
+    .nav-links a{color:#04bef2;text-decoration:none;margin:0 10px;}
+    .nav-links a:hover{text-decoration:underline;}
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>WebGIS Kota Semarang</h1>
+    <p>Visualisasi Jaringan Jalan berdasarkan Fungsi</p>
+    <div class="nav-links">
+      <a href="#about">Tentang</a>
+      <a href="#contact">Kontak</a>
+    </div>
+  </header>
+
+  <main><div id="map"></div></main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/Leaflet.fullscreen.min.js"></script>
+
+  <script>
+    const map = L.map('map', {
+      center: [-6.9667, 110.4167],
+      zoom: 13,
+      fullscreenControl: true
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // Warna berdasarkan fungsi
+    const warnaFungsi = {
+      'Kol. Sekunder': '#e74c3c',
+      'Tol': '#3498db',
+      'Lokal': '#7f8c8d',
+      'Arteri Primer': '#f1c40f',
+      'Arteri Sekunder': '#ffffff'
+    };
+
+    const layerJalan = {}; // simpan tiap layer per fungsi
+    const overlays = {}; // untuk layer control
+    let bounds = L.latLngBounds();
+
+    // Panggil batas admin
+    $.getJSON("admin.geojson", function(data) {
+      const adminLayer = L.geoJson(data, {color: "#222"}).addTo(map);
+      bounds.extend(adminLayer.getBounds());
+      overlays["Batas Administrasi"] = adminLayer;
+    });
+
+    // Panggil jalaninajadulu.geojson lalu pecah berdasarkan fungsi
+    $.getJSON("jalaninajadulu.geojson", function(data) {
+      const fitur = data.features;
+
+      fitur.forEach(f => {
+        const fungsi = f.properties.FUNGSI || "Lainnya";
+        if (!layerJalan[fungsi]) {
+          layerJalan[fungsi] = L.geoJson([], {
+            style: {
+              color: warnaFungsi[fungsi] || "#888",
+              weight: 2,
+              opacity: 0.9
+            },
+            onEachFeature: function (feature, layer) {
+              let html = `<b>Fungsi:</b> ${feature.properties.FUNGSI || '-'}<br>`;
+              html += `<b>Panjang (m):</b> ${feature.properties.PANJANG_M || '-'}<br>`;
+              html += `<b>Rencana:</b> ${feature.properties.RENCANA || '-'}`;
+              layer.bindPopup(html);
+            }
+          });
+          overlays[fungsi] = layerJalan[fungsi];
+        }
+        layerJalan[fungsi].addData(f);
+        bounds.extend(L.geoJson(f).getBounds());
+      });
+
+      // Tambahkan semua layer jalan ke map
+      for (let key in layerJalan) {
+        layerJalan[key].addTo(map);
+      }
+
+      // Tambahkan Layer Control
+      L.control.layers({}, overlays, {collapsed: false}).addTo(map);
+
+      // Zoom ke area
+      map.fitBounds(bounds);
+    });
+  </script>
+</body>
+</html>
