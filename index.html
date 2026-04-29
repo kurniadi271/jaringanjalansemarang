@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>WebGIS Kota Semarang</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -33,6 +33,11 @@
       background: var(--bg);
       color: var(--text);
       overflow: hidden;
+    }
+
+    /* Perbaikan 4: Smooth Scrolling untuk iOS */
+    #searchResults, .layer-list, .ip-body, .m-body {
+      -webkit-overflow-scrolling: touch;
     }
 
     /* ── HEADER ─────────────────────────────── */
@@ -111,6 +116,8 @@
     /* ── LAYOUT ──────────────────────────────── */
     .app-body {
       height: calc(100vh - var(--header-h));
+      /* Perbaikan 2: Atasi Bug 100vh di Safari */
+      height: calc(100dvh - var(--header-h));
       display: flex; position: relative;
     }
 
@@ -381,11 +388,34 @@
     .leaflet-control-locate a {
       background: var(--surface) !important; color: var(--accent2) !important;
     }
+
+    /* Perbaikan 3: Responsive Mobile Tweaks */
+    @media (max-width: 768px) {
+      .sidebar, .info-panel {
+        position: absolute;
+        height: 100%;
+        z-index: 1001;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      }
+      .sidebar { left: 0; }
+      .info-panel { right: 0; }
+
+      .brand h1, .brand p { display: none; }
+      .search-wrap { max-width: 180px; }
+      
+      .status-bar {
+        bottom: 30px;
+        padding: 4px 10px;
+      }
+
+      /* Sembunyikan teks di tombol laporkan khusus mobile */
+      .btn-report { padding: 0 10px; }
+      .btn-text { display: none; }
+    }
   </style>
 </head>
 <body>
 
-<!-- ── HEADER ────────────────────────────────────────── -->
 <header>
   <div class="brand">
     <div class="brand-icon"><i class="fa-solid fa-map-location-dot"></i></div>
@@ -406,15 +436,13 @@
       <i class="fa-solid fa-bars"></i>
     </div>
     <button class="btn-report" onclick="openModal()">
-      <i class="fa-solid fa-triangle-exclamation"></i> Laporkan Kerusakan
+      <i class="fa-solid fa-triangle-exclamation"></i> <span class="btn-text">Laporkan Kerusakan</span>
     </button>
   </div>
 </header>
 
-<!-- ── APP BODY ──────────────────────────────────────── -->
 <div class="app-body">
 
-  <!-- SIDEBAR KIRI -->
   <div class="sidebar" id="sidebar">
 
     <div class="sb-section">
@@ -461,7 +489,6 @@
 
   </div>
 
-  <!-- PETA -->
   <div id="map">
     <div class="status-bar">
       <div class="s-dot"></div>
@@ -469,7 +496,6 @@
     </div>
   </div>
 
-  <!-- INFO PANEL KANAN -->
   <div class="info-panel hidden" id="infoPanel">
     <div class="ip-header">
       <h3><i class="fa-solid fa-circle-info" style="color:var(--accent);margin-right:5px;font-size:11px;"></i>Atribut Fitur</h3>
@@ -485,7 +511,6 @@
 
 </div>
 
-<!-- ── MODAL LAPORAN ─────────────────────────────────── -->
 <div class="modal-ov" id="modalOv">
   <div class="modal">
     <div class="m-header">
@@ -573,7 +598,6 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- ── SCRIPTS ───────────────────────────────────────── -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
@@ -989,6 +1013,13 @@ map.on('mousemove', e => {
   document.getElementById('statusText').textContent =
     `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
 });
+
+// ═══════════════════════════════════════════
+// AUTO-COLLAPSE SIDEBAR DI MOBILE
+// ═══════════════════════════════════════════
+if (window.innerWidth <= 768) {
+  document.getElementById('sidebar').classList.add('collapsed');
+}
 </script>
 </body>
 </html>
